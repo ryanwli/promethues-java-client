@@ -2,13 +2,9 @@ package me.framework.prometheus;
 
 
 import io.prometheus.client.exporter.HTTPServer;
-import io.prometheus.client.spring.boot.EnablePrometheusEndpoint;
 import io.prometheus.client.spring.boot.SpringBootMetricsCollector;
 import me.framework.prometheus.jvm.HotspotJvmExporter;
 import me.framework.prometheus.mvc.MvcRequestConfigurer;
-import me.framework.prometheus.mvc.MvcRequestInterceptor;
-//import me.framework.prometheus.mybatis.SqlExecuteIntercepter;
-import io.prometheus.client.spring.boot.EnableSpringBootMetricsCollector;
 import me.framework.prometheus.mybatis.SqlExecuteIntercepter;
 import me.framework.prometheus.property.PrometheusProperties;
 import org.apache.ibatis.executor.Executor;
@@ -23,7 +19,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.Ordered;
-import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -36,7 +31,7 @@ import java.util.stream.Collectors;
 @ConditionalOnProperty(value = "prometheus.monitor.enabled", havingValue = "true", matchIfMissing = true)
 @AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE)
 @EnableConfigurationProperties(PrometheusProperties.class)
-@Import({PrometheusAutoConfigure.MybatisConfig.class})
+@Import({PrometheusAutoConfigure.MybatisConfig.class, PrometheusAutoConfigure.MvcConfig.class})
 public class PrometheusAutoConfigure {
 
     @Autowired
@@ -67,11 +62,13 @@ public class PrometheusAutoConfigure {
         return Exporter;
     }
 
-    @Bean
-    @ConditionalOnClass(HandlerInterceptorAdapter.class)
-    @ConditionalOnProperty(value = "prometheus.monitor.mvc.enabled", havingValue = "true", matchIfMissing = true)
-    MvcRequestConfigurer mvcRequestConfigurer(){
-        return new MvcRequestConfigurer();
+    @ConditionalOnClass(value = { MvcRequestConfigurer.class })
+    class MvcConfig {
+        @Bean
+        @ConditionalOnProperty(value = "prometheus.monitor.mvc.enabled", havingValue = "true", matchIfMissing = true)
+        MvcRequestConfigurer mvcRequestConfigurer(){
+            return new MvcRequestConfigurer();
+        }
     }
 
     @ConditionalOnClass(Executor.class)
